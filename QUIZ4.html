@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Quiz – Artificial Intelligence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 flex items-center justify-center min-h-screen">
+
+<div id="app" class="w-full max-w-3xl p-6"></div>
+
+<script>
+const passage = `
+<h2 class="text-2xl font-bold mb-4 text-center">Reading Passage: Artificial Intelligence and Human Life</h2>
+<p class="mb-2">It is predicted that within a few decades, artificial intelligence will be integrated into nearly every aspect of human life. In many workplaces today, AI systems already assist humans in making decisions, managing data, and even performing creative tasks such as writing music or designing products. Supporters of this rapid technological expansion argue that AI can enhance productivity, reduce human error, and free people from repetitive or dangerous labor.</p>
+<p class="mb-2">However, critics warn that dependence on AI could lead to an erosion of essential human skills. When machines handle most decision-making, humans may lose their ability to think critically or solve problems independently. Another concern is ethical responsibility: if an AI-driven car causes an accident, for instance, it is difficult to determine who should be held accountable — the programmer, the manufacturer, or the algorithm itself.</p>
+<p class="mb-2">Although these concerns are valid, many experts believe that the key lies not in rejecting AI but in guiding its development responsibly. With proper oversight and education, humans and machines could form a partnership that combines efficiency with empathy.</p>
+`;
+
+const questions = [
+  {
+    q: "What is the main topic of the passage?",
+    options: [
+      "The replacement of humans by machines in the workplace",
+      "The potential benefits and challenges of artificial intelligence",
+      "The history of technological development in modern society",
+      "The ethical rules used to control machine behavior"
+    ],
+    answer: 1,
+    explanation: "The passage discusses both the advantages and the concerns surrounding AI."
+  },
+  {
+    q: "The word “integrated” in line 1 is closest in meaning to",
+    options: ["separated", "combined", "removed", "rejected"],
+    answer: 1,
+    explanation: "“Integrated” means combined or made part of something."
+  },
+  {
+    q: "According to the passage, which of the following is NOT mentioned as a benefit of AI?",
+    options: ["Enhancing productivity", "Reducing human error", "Improving human creativity", "Increasing unemployment"],
+    answer: 3,
+    explanation: "Increasing unemployment is a possible drawback, not a benefit."
+  },
+  {
+    q: "It is implied in the passage that critics of AI believe that",
+    options: [
+      "machines will completely replace human workers",
+      "AI can sometimes make moral decisions better than humans",
+      "people might lose important mental abilities",
+      "AI is too expensive for most companies to use"
+    ],
+    answer: 2,
+    explanation: "Critics fear that humans may lose critical thinking and problem-solving skills."
+  },
+  {
+    q: "The word “erosion” in line 8 is closest in meaning to",
+    options: ["strengthening", "disappearance", "invention", "control"],
+    answer: 1,
+    explanation: "“Erosion” means a gradual disappearance or weakening."
+  },
+  {
+    q: "The passage mentions an AI-driven car primarily to",
+    options: [
+      "demonstrate a possible ethical dilemma caused by technology",
+      "show how AI can reduce road accidents",
+      "illustrate the importance of faster transportation",
+      "argue that cars should not rely on human control"
+    ],
+    answer: 0,
+    explanation: "It’s used as an example of an ethical dilemma."
+  },
+  {
+    q: "The author’s attitude toward AI can best be described as",
+    options: [
+      "completely optimistic",
+      "critical and negative",
+      "balanced and cautious",
+      "indifferent and neutral"
+    ],
+    answer: 2,
+    explanation: "The author presents both sides and ends on a balanced view."
+  },
+  {
+    q: "The word “oversight” in line 15 is closest in meaning to",
+    options: ["observation", "indifference", "invention", "reduction"],
+    answer: 0,
+    explanation: "“Oversight” here means supervision or careful observation."
+  },
+  {
+    q: "Which of the following statements best reflects the author’s conclusion?",
+    options: [
+      "Humans must abandon AI to prevent moral problems.",
+      "AI should develop without government interference.",
+      "Cooperation between humans and AI is possible through responsible guidance.",
+      "The risks of AI far outweigh its potential benefits."
+    ],
+    answer: 2,
+    explanation: "The conclusion promotes responsible collaboration between humans and AI."
+  },
+  {
+    q: "The tone of this passage is primarily",
+    options: [
+      "emotional and personal",
+      "explanatory and analytical",
+      "humorous and informal",
+      "pessimistic and gloomy"
+    ],
+    answer: 1,
+    explanation: "The tone is informative and analytical, explaining pros and cons logically."
+  }
+];
+
+let shuffledQuestions = [];
+let current = 0;
+let score = 0;
+let name = "";
+let timer;
+let timeLeft = 20 * 60; // 20 minutes
+
+function shuffleArray(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function startQuiz(user) {
+  name = user;
+  shuffledQuestions = shuffleArray([...questions]);
+  shuffledQuestions.forEach(q => q.options = shuffleArray(q.options));
+  current = 0;
+  score = 0;
+  document.getElementById('app').innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+      <div class="flex justify-between mb-2 text-sm text-gray-500">
+        <div>Name: <span class="font-semibold">${name}</span></div>
+        <div>Time left: <span id="timer">20:00</span></div>
+      </div>
+      <div id="passage" class="prose max-w-none mb-4">${passage}</div>
+      <div id="quiz"></div>
+    </div>`;
+  startTimer();
+  showQuestion();
+}
+
+function startTimer() {
+  const t = document.getElementById('timer');
+  timer = setInterval(() => {
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    t.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      finishQuiz();
+    }
+  }, 1000);
+}
+
+function showQuestion() {
+  const q = shuffledQuestions[current];
+  let optionsHTML = "";
+  q.options.forEach((opt, i) => {
+    optionsHTML += `
+      <label class="block border rounded-xl px-3 py-2 hover:bg-gray-100 cursor-pointer">
+        <input type="radio" name="option" value="${i}" class="mr-2"> ${opt}
+      </label>`;
+  });
+  document.getElementById('quiz').innerHTML = `
+    <h3 class="text-lg font-semibold mb-3">Question ${current + 1} of ${shuffledQuestions.length}</h3>
+    <p class="mb-3">${q.q}</p>
+    <div class="space-y-2 mb-4">${optionsHTML}</div>
+    <button onclick="nextQuestion()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Next</button>`;
+}
+
+function nextQuestion() {
+  const selected = document.querySelector('input[name="option"]:checked');
+  if (!selected) {
+    alert("Please select an answer before continuing.");
+    return;
+  }
+  const answerIndex = parseInt(selected.value);
+  const q = shuffledQuestions[current];
+  const correctIndex = q.options.indexOf(q.options[q.answer]);
+  if (q.options[answerIndex] === q.options[q.answer]) score++;
+  q.userAnswer = q.options[answerIndex];
+  current++;
+  if (current < shuffledQuestions.length) {
+    showQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz() {
+  clearInterval(timer);
+  const resultHTML = shuffledQuestions.map((q, i) => {
+    const correct = q.userAnswer === q.options[q.answer];
+    return `
+      <div class="border-b py-3">
+        <p class="font-semibold">Q${i + 1}. ${q.q}</p>
+        <p>Your answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">${q.userAnswer || 'No answer'}</span></p>
+        <p>Correct answer: <span class="text-green-600">${q.options[q.answer]}</span></p>
+        <p class="text-gray-600 text-sm italic">${q.explanation}</p>
+      </div>`;
+  }).join("");
+  const scorePercent = Math.round((score / shuffledQuestions.length) * 100);
+  localStorage.setItem("aiReadingQuiz", JSON.stringify({ name, score, date: new Date().toLocaleString() }));
+  document.getElementById('app').innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-lg overflow-y-auto max-h-screen">
+      <h2 class="text-2xl font-bold mb-4 text-center">Result for ${name}</h2>
+      <p class="text-center mb-4 text-lg">Score: <span class="font-semibold">${score}/${shuffledQuestions.length}</span> (${scorePercent}%)</p>
+      <div>${resultHTML}</div>
+      <div class="text-center mt-6">
+        <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Retake Quiz</button>
+      </div>
+    </div>`;
+}
+
+document.getElementById('app').innerHTML = `
+  <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+    <h1 class="text-2xl font-bold mb-2">Reading Quiz: Artificial Intelligence</h1>
+    <p class="mb-4 text-gray-600">Enter your name to begin the 20-minute reading test.</p>
+    <input id="username" type="text" placeholder="Your name" class="border rounded-lg px-3 py-2 w-full mb-4">
+    <button onclick="const name=document.getElementById('username').value.trim(); if(name) startQuiz(name); else alert('Please enter your name.')"
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 w-full">Start Test</button>
+  </div>`;
+</script>
+
+</body>
+</html>

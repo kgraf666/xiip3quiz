@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TOEFL-style Past Tense Quiz — 15 min</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --accent:#2563eb; --muted:#6b7280;
+      --success:#10b981; --danger:#ef4444; --glass: rgba(255,255,255,0.6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:#0f172a;}
+    .container{max-width:900px; margin:28px auto; padding:20px;}
+    .card{background:var(--card); border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,0.06); padding:22px;}
+    h1{margin:0 0 8px; font-size:20px;}
+    p.lead{color:var(--muted); margin:0 0 18px;}
+    .center{display:flex; gap:8px; align-items:center; justify-content:center;}
+    .btn{background:var(--accent); color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600;}
+    .btn.secondary{background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12);}
+    .btn.ghost{background:transparent; color:var(--muted); border:1px dashed rgba(15,23,42,0.06);}
+    input[type="text"]{padding:10px; border-radius:8px; border:1px solid #e6e9ef; width:100%; box-sizing:border-box;}
+    .meta{display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
+    .timer{font-weight:700; color:var(--accent);}
+    .progress-wrap{background:#e6eefc; border-radius:999px; height:10px; overflow:hidden; width:100%;}
+    .progress{height:100%; background:linear-gradient(90deg,var(--accent), #60a5fa); width:0%;}
+    .question{margin:12px 0 6px; font-weight:600;}
+    .options{display:flex; flex-direction:column; gap:8px; margin-top:8px;}
+    .option{padding:10px; border-radius:8px; border:1px solid #eef2ff; cursor:pointer; user-select:none;}
+    .option.selected{border-color:rgba(37,99,235,0.2); background:#f8fbff;}
+    .pagination{display:flex; gap:8px; align-items:center; margin-top:14px; flex-wrap:wrap;}
+    .small{font-size:13px; color:var(--muted);}
+    .review {margin-top:16px;}
+    .review-item{padding:12px; border-radius:8px; border:1px solid #eef2ff; background:#fff; margin-bottom:12px;}
+    .correct{color:var(--success); font-weight:700;}
+    .wrong{color:var(--danger); font-weight:700;}
+    .summary{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+    @media (max-width:640px){
+      .meta{flex-direction:column; align-items:stretch;}
+      .summary{flex-direction:column; align-items:stretch;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card" id="start-screen">
+      <h1>TOEFL-style Simple Past Quiz</h1>
+      <p class="lead">Enter your name and press Start. 15 minutes. 30 random questions picked each attempt.</p>
+      <div style="margin-top:14px;">
+        <label class="small">Full name</label>
+        <input id="username" type="text" placeholder="Type your full name..." />
+      </div>
+      <div style="margin-top:16px;" class="center">
+        <button class="btn" id="start-btn">Start Quiz</button>
+        <button class="btn secondary" id="load-last">Load last attempt</button>
+      </div>
+      <p style="margin-top:12px;" class="small">Attempts are saved locally in your browser (localStorage).</p>
+    </div>
+
+    <div class="card" id="quiz-screen" style="display:none;">
+      <div class="meta">
+        <div><strong id="display-name"></strong></div>
+        <div class="small">Time left: <span class="timer" id="timer">15:00</span></div>
+        <div style="flex:1">
+          <div class="progress-wrap" title="Progress">
+            <div class="progress" id="progress"></div>
+          </div>
+        </div>
+        <div class="small">Q <span id="current-no">1</span>/<span id="total-no">30</span></div>
+      </div>
+
+      <div id="question-area">
+        <!-- question and options go here -->
+      </div>
+
+      <div class="pagination">
+        <button class="btn ghost" id="prev-btn">Previous</button>
+        <button class="btn ghost" id="next-btn">Next</button>
+        <div style="flex:1"></div>
+        <button class="btn secondary" id="submit-btn">Submit Quiz</button>
+      </div>
+    </div>
+
+    <div class="card" id="result-screen" style="display:none;">
+      <div class="summary">
+        <div>
+          <h2 id="score-title">You scored 0 / 30</h2>
+          <div class="small" id="attempt-meta"></div>
+        </div>
+        <div class="center" style="gap:10px;">
+          <button class="btn" id="retake-btn">Retake</button>
+          <button class="btn secondary" id="download-btn">Download results</button>
+          <button class="btn ghost" id="clear-storage">Clear saved attempts</button>
+        </div>
+      </div>
+
+      <div class="review" id="review-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------
+    // Question bank (from user)
+    // Each item: {q, choices: [], answer: "full answer text"}
+    // -------------------------
+    const QUESTION_BANK = [
+{q:"She ___ to the library yesterday afternoon.", choices:["go","goes","went","going"], answer:"went"},
+{q:"They ___ dinner at home last night.", choices:["didn’t cook","don’t cook","not cooked","doesn’t cook"], answer:"didn’t cook"},
+{q:"___ you watch the football match yesterday?", choices:["Do","Did","Does","Were"], answer:"Did"},
+{q:"He ___ his keys at the office yesterday.", choices:["lose","lost","loses","losing"], answer:"lost"},
+{q:"I ___ to the concert because I was sick.", choices:["didn’t go","don’t go","not went","wasn’t go"], answer:"didn’t go"},
+{q:"What time ___ the movie start last night?", choices:["does","did","was","do"], answer:"did"},
+{q:"She ___ a letter to her friend last week.", choices:["writes","write","wrote","writing"], answer:"wrote"},
+{q:"They ___ any coffee this morning.", choices:["doesn’t drink","don’t drink","didn’t drink","weren’t drink"], answer:"didn’t drink"},
+{q:"Where ___ you go for your vacation last year?", choices:["do","did","were","are"], answer:"did"},
+{q:"He ___ me yesterday, but I didn’t see him.", choices:["call","called","calling","calls"], answer:"called"},
+{q:"We ___ happy with the results of the test.", choices:["was","were","are","being"], answer:"were"},
+{q:"Why ___ she cry after the meeting?", choices:["do","does","did","was"], answer:"did"},
+{q:"I ___ my homework before dinner.", choices:["finish","finished","finishing","finishes"], answer:"finished"},
+{q:"They ___ to come because it was raining heavily.", choices:["didn’t want","don’t want","not wanted","wasn’t want"], answer:"didn’t want"},
+{q:"When ___ you meet your best friend?", choices:["do","did","does","are"], answer:"did"},
+{q:"She ___ very tired after work yesterday.", choices:["feel","feels","felt","feeling"], answer:"felt"},
+{q:"He ___ the window by accident.", choices:["break","broke","breaks","breaking"], answer:"broke"},
+{q:"I ___ understand the lesson yesterday.", choices:["didn’t","don’t","wasn’t","not"], answer:"didn’t"},
+{q:"What ___ you eat for breakfast this morning?", choices:["do","did","were","are"], answer:"did"},
+{q:"We ___ a lot of fun at the beach last weekend.", choices:["have","had","has","having"], answer:"had"},
+{q:"They ___ home until midnight.", choices:["didn’t arrive","don’t arrive","not arrived","weren’t arrive"], answer:"didn’t arrive"},
+{q:"Who ___ you talk to after class yesterday?", choices:["do","did","does","are"], answer:"did"},
+{q:"She ___ English very well when she was young.", choices:["speaks","spoke","speaking","speak"], answer:"spoke"},
+{q:"He ___ his homework because he forgot his notebook.", choices:["didn’t do","don’t do","wasn’t do","not did"], answer:"didn’t do"},
+{q:"When ___ the rain stop last night?", choices:["do","does","did","was"], answer:"did"},
+{q:"He ___ to the meeting early this morning.", choices:["come","comes","came","coming"], answer:"came"},
+{q:"They ___ any mistakes in their presentation.", choices:["don’t make","didn’t make","not made","weren’t make"], answer:"didn’t make"},
+{q:"___ you hear the news about the new project?", choices:["Do","Did","Were","Does"], answer:"Did"},
+{q:"She ___ her bag at school yesterday.", choices:["forget","forgot","forgetting","forgets"], answer:"forgot"},
+{q:"I ___ to call you last night, but I was too busy.", choices:["try","tries","tried","trying"], answer:"tried"},
+{q:"We ___ any rain during our trip last week.", choices:["don’t have","didn’t have","not had","wasn’t have"], answer:"didn’t have"},
+{q:"Where ___ you find that beautiful necklace?", choices:["do","did","were","does"], answer:"did"},
+{q:"He ___ his ankle while playing football yesterday.", choices:["sprain","sprains","sprained","spraining"], answer:"sprained"},
+{q:"They ___ late to class this morning.", choices:["are","was","were","be"], answer:"were"},
+{q:"The teacher ___ a difficult question during the test.", choices:["ask","asks","asked","asking"], answer:"asked"},
+{q:"Why ___ she leave so suddenly?", choices:["do","does","did","was"], answer:"did"},
+{q:"We ___ to finish the report on time.", choices:["didn’t manage","don’t manage","not managed","weren’t manage"], answer:"didn’t manage"},
+{q:"He ___ a wonderful speech at the ceremony.", choices:["gives","gave","give","giving"], answer:"gave"},
+{q:"I ___ breakfast this morning because I woke up late.", choices:["didn’t eat","don’t eat","not ate","wasn’t eat"], answer:"didn’t eat"},
+{q:"When ___ you start learning English?", choices:["do","did","are","was"], answer:"did"},
+{q:"They ___ at the same restaurant last weekend.", choices:["eat","ate","eating","eats"], answer:"ate"},
+{q:"She ___ to open the window because it was hot.", choices:["wanted","want","wants","wanting"], answer:"wanted"},
+{q:"He ___ in Paris for three years before he moved to Rome.", choices:["live","lives","lived","living"], answer:"lived"},
+{q:"We ___ our friends at the airport yesterday.", choices:["meet","meets","met","meeting"], answer:"met"},
+{q:"The company ___ new employees last month.", choices:["hire","hires","hired","hiring"], answer:"hired"},
+{q:"___ you enjoy the concert last night?", choices:["Do","Did","Are","Were"], answer:"Did"},
+{q:"I ___ my wallet when I paid for the groceries.", choices:["drop","drops","dropped","dropping"], answer:"dropped"},
+{q:"They ___ to repair the car themselves.", choices:["decide","decided","deciding","decides"], answer:"decided"},
+{q:"He ___ the letter to his parents last weekend.", choices:["send","sends","sent","sending"], answer:"sent"},
+{q:"We ___ a lot of interesting people at the conference.", choices:["meet","met","meeting","meets"], answer:"met"}
+    ];
+
+    // -------------------------
+    // Configuration
+    const TOTAL_QUESTIONS = 30;
+    const TIME_LIMIT_SECONDS = 15 * 60; // 15 minutes
+
+    // -------------------------
+    // State
+    let userName = "";
+    let quizQuestions = []; // selected 30
+    let currentIndex = 0;
+    let answers = []; // user's selected indices (or null)
+    let timerInterval = null;
+    let timeLeft = TIME_LIMIT_SECONDS;
+    let submitted = false;
+
+    // -------------------------
+    // Utilities
+    function shuffleArray(a){
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    }
+
+    function pickRandomQuestions(bank, n){
+      const copy = JSON.parse(JSON.stringify(bank));
+      shuffleArray(copy);
+      return copy.slice(0, Math.min(n, copy.length));
+    }
+
+    function formatTime(s){
+      const m = Math.floor(s/60).toString().padStart(2,'0');
+      const sec = (s%60).toString().padStart(2,'0');
+      return `${m}:${sec}`;
+    }
+
+    // -------------------------
+    // DOM elements
+    const startScreen = document.getElementById('start-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const startBtn = document.getElementById('start-btn');
+    const loadLastBtn = document.getElementById('load-last');
+    const usernameInput = document.getElementById('username');
+    const displayName = document.getElementById('display-name');
+    const timerEl = document.getElementById('timer');
+    const progressEl = document.getElementById('progress');
+    const questionArea = document.getElementById('question-area');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const currentNo = document.getElementById('current-no');
+    const totalNo = document.getElementById('total-no');
+    const scoreTitle = document.getElementById('score-title');
+    const reviewList = document.getElementById('review-list');
+    const retakeBtn = document.getElementById('retake-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const clearStorageBtn = document.getElementById('clear-storage');
+
+    // -------------------------
+    // Start / Setup
+    startBtn.addEventListener('click', startQuiz);
+    loadLastBtn.addEventListener('click', loadLastAttempt);
+    prevBtn.addEventListener('click', ()=>{ if(currentIndex>0){ currentIndex--; renderQuestion(); }});
+    nextBtn.addEventListener('click', ()=>{ if(currentIndex < quizQuestions.length-1){ currentIndex++; renderQuestion(); }});
+    submitBtn.addEventListener('click', submitQuiz);
+    retakeBtn.addEventListener('click', retakeQuiz);
+    downloadBtn.addEventListener('click', downloadResults);
+    clearStorageBtn.addEventListener('click', clearStorage);
+
+    function startQuiz(){
+      userName = usernameInput.value.trim() || "Anonymous";
+      displayName.textContent = userName;
+      // prepare questions
+      quizQuestions = pickRandomQuestions(QUESTION_BANK, TOTAL_QUESTIONS).map(q=>{
+        // shuffle choices, but store correct answer text for comparison
+        const choices = JSON.parse(JSON.stringify(q.choices));
+        shuffleArray(choices);
+        return { q: q.q, choices, answerText: q.answer };
+      });
+      // ensure answers array
+      answers = new Array(quizQuestions.length).fill(null);
+      currentIndex = 0;
+      timeLeft = TIME_LIMIT_SECONDS;
+      submitted = false;
+      // UI switch
+      startScreen.style.display = 'none';
+      resultScreen.style.display = 'none';
+      quizScreen.style.display = 'block';
+      totalNo.textContent = quizQuestions.length;
+      currentNo.textContent = 1;
+      updateProgress();
+      renderQuestion();
+      startTimer();
+    }
+
+    function loadLastAttempt(){
+      const attempts = JSON.parse(localStorage.getItem('quiz_attempts')||'[]');
+      if(!attempts.length){ alert('No saved attempts in localStorage.'); return; }
+      const last = attempts[attempts.length-1];
+      alert(`Last attempt:\nName: ${last.name}\nScore: ${last.score}/${last.total}\nDate: ${last.date}`);
+    }
+
+    // -------------------------
+    // Timer
+    function startTimer(){
+      updateTimerDisplay();
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(()=>{
+        timeLeft--;
+        updateTimerDisplay();
+        if(timeLeft<=0){
+          clearInterval(timerInterval);
+          if(!submitted) {
+            alert("Time is up! Your quiz will be submitted automatically.");
+            submitQuiz();
+          }
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay(){
+      timerEl.textContent = formatTime(timeLeft);
+      const pct = ( (quizQuestions.length ? (currentIndex+1)/quizQuestions.length : 0) * 100 );
+      // Secondary progress: also show time as gradient width (we'll keep question progress as primary)
+      const timePct = Math.max(0, Math.min(100, (timeLeft / TIME_LIMIT_SECONDS) * 100 ));
+      // Use timePct to slightly influence progress bar but show question progression
+      const progValue = pct * 0.7 + timePct * 0.3;
+      progressEl.style.width = progValue + '%';
+    }
+
+    // -------------------------
+    // Rendering question
+    function renderQuestion(){
+      const item = quizQuestions[currentIndex];
+      currentNo.textContent = currentIndex + 1;
+      questionArea.innerHTML = '';
+      const qEl = document.createElement('div');
+      qEl.innerHTML = `<div class="question">${currentIndex+1}. ${item.q}</div>`;
+      const optsEl = document.createElement('div');
+      optsEl.className = 'options';
+      item.choices.forEach((choice, idx)=>{
+        const opt = document.createElement('div');
+        opt.className = 'option';
+        if(answers[currentIndex] === idx) opt.classList.add('selected');
+        opt.textContent = choice;
+        opt.addEventListener('click', ()=> {
+          answers[currentIndex] = idx;
+          // update selection visuals
+          Array.from(optsEl.children).forEach((c,ci)=> c.classList.toggle('selected', ci===idx));
+        });
+        optsEl.appendChild(opt);
+      });
+      qEl.appendChild(optsEl);
+      questionArea.appendChild(qEl);
+      updateTimerDisplay();
+    }
+
+    function updateProgress(){
+      // update progress bar based on answered count
+      const answered = answers.filter(a => a !== null).length;
+      const pct = (answered / quizQuestions.length) * 100;
+      progressEl.style.width = pct + '%';
+    }
+
+    // Update progress each time user changes selection by clicking options
+    // We'll add a small observer: delegate to questionArea
+    questionArea.addEventListener('click', () => updateProgress());
+
+    // -------------------------
+    // Submission and scoring
+    function submitQuiz(){
+      if(submitted) return;
+      if(!confirm("Submit quiz now? You won't be able to change answers after submitting.")) return;
+      submitted = true;
+      clearInterval(timerInterval);
+      // compute score
+      let correctCount = 0;
+      const review = [];
+      for(let i=0;i<quizQuestions.length;i++){
+        const q = quizQuestions[i];
+        const selectedIdx = answers[i];
+        const selectedText = (selectedIdx===null || selectedIdx===undefined) ? null : q.choices[selectedIdx];
+        const isCorrect = selectedText !== null && selectedText !== undefined && selectedText.toString().trim().toLowerCase() === q.answerText.toString().trim().toLowerCase();
+        if(isCorrect) correctCount++;
+        review.push({
+          q: q.q,
+          choices: q.choices,
+          selected: selectedText,
+          correct: q.answerText,
+          isCorrect
+        });
+      }
+      // Save attempt to localStorage
+      const attempts = JSON.parse(localStorage.getItem('quiz_attempts')||'[]');
+      const attemptObj = {
+        name: userName,
+        score: correctCount,
+        total: quizQuestions.length,
+        date: new Date().toLocaleString(),
+        review
+      };
+      attempts.push(attemptObj);
+      localStorage.setItem('quiz_attempts', JSON.stringify(attempts));
+
+      // Show results
+      quizScreen.style.display = 'none';
+      resultScreen.style.display = 'block';
+      scoreTitle.textContent = `You scored ${correctCount} / ${quizQuestions.length}`;
+      document.getElementById('attempt-meta').textContent = `Name: ${userName} — ${attemptObj.date}`;
+      renderReview(review);
+    }
+
+    function renderReview(review){
+      reviewList.innerHTML = '';
+      review.forEach((r, idx)=>{
+        const el = document.createElement('div');
+        el.className = 'review-item';
+        const header = document.createElement('div');
+        header.innerHTML = `<div style="font-weight:700;">${idx+1}. ${r.q}</div>`;
+        const body = document.createElement('div');
+        body.style.marginTop='8px';
+        // user's attempt
+        const userAnswer = r.selected ? `<span class="${r.isCorrect ? 'correct' : 'wrong'}">${escapeHtml(r.selected)}</span>` : `<em class="small">No answer</em>`;
+        body.innerHTML = `<div class="small">Your answer: ${userAnswer}</div>
+                          <div class="small">Correct answer: <span class="correct">${escapeHtml(r.correct)}</span></div>`;
+        el.appendChild(header);
+        el.appendChild(body);
+        reviewList.appendChild(el);
+      });
+    }
+
+    // -------------------------
+    // Helpers
+    function escapeHtml(text){
+      if(text===null || text===undefined) return '';
+      return text.toString().replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function retakeQuiz(){
+      // Reset and show start screen, keep name prefilled
+      usernameInput.value = userName;
+      startScreen.style.display = 'block';
+      quizScreen.style.display = 'none';
+      resultScreen.style.display = 'none';
+      // Clear state
+      answers = [];
+      quizQuestions = [];
+      currentIndex = 0;
+      submitted = false;
+      if(timerInterval) clearInterval(timerInterval);
+      progressEl.style.width = '0%';
+    }
+
+    function downloadResults(){
+      const attempts = JSON.parse(localStorage.getItem('quiz_attempts')||'[]');
+      if(!attempts.length){ alert('No attempts to download.'); return; }
+      const last = attempts[attempts.length-1];
+      const data = {
+        name: last.name,
+        score: last.score + ' / ' + last.total,
+        date: last.date,
+        review: last.review
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quiz_result_${last.name.replace(/\s+/g,'_')}_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearStorage(){
+      if(!confirm('Clear all saved attempts from localStorage?')) return;
+      localStorage.removeItem('quiz_attempts');
+      alert('Saved attempts cleared.');
+    }
+
+    // -------------------------
+    // Prevent accidental leave
+    window.addEventListener('beforeunload', function(e){
+      if(!submitted && quizQuestions.length) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // -------------------------
+    // Small UX: allow keyboard navigation
+    document.addEventListener('keydown', (e)=>{
+      if(quizScreen.style.display === 'block'){
+        if(e.key === 'ArrowRight') nextBtn.click();
+        if(e.key === 'ArrowLeft') prevBtn.click();
+        if(e.key === 'Enter' && e.ctrlKey) submitBtn.click();
+      }
+    });
+
+  </script>
+</body>
+</html>

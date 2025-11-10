@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reading Quiz — "The River of Tomorrow"</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* small tweak for selected option */
+    .option-selected { @apply ring-2 ring-blue-300 bg-blue-50; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-start pb-12">
+  <div class="container mx-auto px-4 max-w-3xl">
+    <!-- Start Screen -->
+    <div id="startScreen" class="mt-10 bg-white rounded-2xl shadow-md p-6">
+      <h1 class="text-2xl font-semibold">Reading Quiz — "The River of Tomorrow"</h1>
+      <p class="text-sm text-slate-600 mt-2">Enter your name to begin. You will have <strong>20 minutes</strong>. Passage remains visible while you answer one question at a time.</p>
+      <div class="mt-4 grid gap-3 sm:grid-cols-3 items-center">
+        <input id="nameInput" type="text" placeholder="Your full name" class="sm:col-span-2 p-3 border rounded-lg shadow-sm focus:outline-none" />
+        <div class="flex gap-2 justify-end">
+          <button id="loadLastBtn" class="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50">Load last attempt</button>
+          <button id="startBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Start Quiz</button>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">Attempts are stored locally in your browser using localStorage.</p>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen" class="mt-6 bg-white rounded-2xl shadow-md p-6" style="display:none;">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="text-sm text-slate-600">Name</div>
+          <div id="displayName" class="font-semibold text-lg"></div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-slate-600">Time left</div>
+          <div id="timer" class="text-xl font-semibold text-blue-600">20:00</div>
+        </div>
+      </div>
+
+      <hr class="my-4"/>
+
+      <!-- Passage -->
+      <div class="bg-slate-50 rounded-lg p-4 prose max-w-none">
+        <h2 class="text-lg font-semibold">Reading Passage: “The River of Tomorrow”</h2>
+        <p>In the small mountain village of Lura, water was always a problem. The streams that once flowed through the valley had dried up because of climate change. People had to walk long distances to find clean water, and farming had nearly stopped.</p>
+        <p>One day, a young engineer named Taro returned from the city. He had studied renewable energy and artificial intelligence. Seeing the struggle of his people, Taro decided to build something that could change their future — an automated water irrigation system powered by solar energy and controlled by smart sensors.</p>
+        <p>Taro worked for months with the help of local villagers. They carried pipes up the rocky hills and connected them to a hidden mountain spring. Small AI devices monitored the water level and adjusted the flow automatically. When the sunlight was strong, the solar panels charged batteries that kept the system running even at night.</p>
+        <p>At first, the villagers did not believe it would work. But when the first drops of fresh water reached the village square, everyone cheered. The dry farms turned green again, and children played under the sprinkling fountains. The project didn’t just bring water — it brought hope and pride to the people of Lura.</p>
+        <p>Years later, engineers from other regions visited Lura to study Taro’s design. His idea spread across the country, helping many other villages survive in a changing world. Taro smiled, knowing that technology and tradition could build a better future together.</p>
+      </div>
+
+      <!-- Question card -->
+      <div class="mt-6 p-4 border rounded-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-slate-600">Question <span id="qIndex">1</span> / <span id="qTotal">10</span></div>
+            <div id="questionText" class="font-semibold text-lg mt-1"></div>
+          </div>
+          <div class="text-sm text-slate-500">
+            <div>Progress</div>
+            <div class="w-40 bg-slate-100 rounded-full h-3 mt-2 overflow-hidden">
+              <div id="progressBar" class="h-3 bg-blue-500 w-0"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="optionsContainer" class="mt-4 grid gap-3"></div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <div class="flex gap-2">
+            <button id="prevBtn" class="px-3 py-2 rounded-lg border text-slate-700">Previous</button>
+            <button id="nextBtn" class="px-3 py-2 rounded-lg border text-slate-700">Next</button>
+          </div>
+
+          <div class="flex gap-2 items-center">
+            <div class="text-sm text-slate-500">Answered: <span id="answeredCount">0</span>/<span id="totalCount">10</span></div>
+            <button id="submitBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="resultScreen" class="mt-6 bg-white rounded-2xl shadow-md p-6" style="display:none;">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 id="scoreText" class="text-2xl font-semibold">You scored 0 / 10</h2>
+          <div id="metaInfo" class="text-sm text-slate-500">Name &middot; Date</div>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="retakeBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg">Retake</button>
+          <button id="downloadBtn" class="px-3 py-2 border rounded-lg">Download</button>
+          <button id="clearBtn" class="px-3 py-2 border rounded-lg text-red-600">Clear saved</button>
+        </div>
+      </div>
+
+      <div class="mt-4 space-y-3" id="reviewContainer"></div>
+    </div>
+
+  </div>
+
+<script>
+  // ------------------------
+  // Question bank with explanations
+  // ------------------------
+  const PASSAGE_QUESTIONS = [
+    {
+      q: "What is the main purpose of the passage?",
+      choices: [
+        "To explain how climate change affects mountain villages",
+        "To describe how one person used technology to help his village",
+        "To compare life in the city and the countryside",
+        "To warn people about the dangers of solar power"
+      ],
+      answer: "To describe how one person used technology to help his village",
+      explanation: "The story focuses on Taro’s innovation and its positive impact on his village."
+    },
+    {
+      q: "According to the passage, why did the streams in Lura dry up?",
+      choices: [
+        "Because of deforestation",
+        "Because of climate change",
+        "Because of pollution from the city",
+        "Because of overuse by farmers"
+      ],
+      answer: "Because of climate change",
+      explanation: "The text clearly states that climate change caused the streams to dry up."
+    },
+    {
+      q: "What can be inferred about Taro from the passage?",
+      choices: [
+        "He preferred city life to village life",
+        "He cared deeply about his community",
+        "He wanted to earn money from his invention",
+        "He didn’t believe in using modern technology"
+      ],
+      answer: "He cared deeply about his community",
+      explanation: "His decision to return and help his village shows his care and commitment."
+    },
+    {
+      q: "The word “automated” in paragraph 2 is closest in meaning to ___ .",
+      choices: [
+        "traditional",
+        "machine-operated",
+        "human-made",
+        "hand-controlled"
+      ],
+      answer: "machine-operated",
+      explanation: "“Automated” means something that works by itself, often using machines or computers."
+    },
+    {
+      q: "What is the function of the AI devices mentioned in the story?",
+      choices: [
+        "To store solar energy",
+        "To clean the water",
+        "To monitor and control the water flow",
+        "To collect rainwater"
+      ],
+      answer: "To monitor and control the water flow",
+      explanation: "The passage says AI devices adjusted the water flow automatically."
+    },
+    {
+      q: "In the sentence, “They carried pipes up the rocky hills and connected them to a hidden mountain spring,” the word “them” refers to ___ .",
+      choices: [
+        "the villagers",
+        "the hills",
+        "the pipes",
+        "the springs"
+      ],
+      answer: "the pipes",
+      explanation: "“Them” replaces the noun “pipes,” the object being carried and connected."
+    },
+    {
+      q: "Which of the following best describes the villagers’ attitude before the system worked?",
+      choices: [
+        "Doubtful",
+        "Excited",
+        "Confused",
+        "Angry"
+      ],
+      answer: "Doubtful",
+      explanation: "The story says they didn’t believe it would work at first."
+    },
+    {
+      q: "The phrase “technology and tradition could build a better future together” suggests that ___ .",
+      choices: [
+        "old ways should be replaced completely by machines",
+        "modern science can support traditional lifestyles",
+        "tradition and technology cannot coexist",
+        "technology is only for young people"
+      ],
+      answer: "modern science can support traditional lifestyles",
+      explanation: "It shows harmony between innovation and community heritage."
+    },
+    {
+      q: "What can be inferred about the future of Lura after Taro’s success?",
+      choices: [
+        "It became a model for other villages",
+        "It was abandoned by its people",
+        "It stopped using technology",
+        "It depended on outside aid again"
+      ],
+      answer: "It became a model for other villages",
+      explanation: "Engineers visited to study Taro’s system, showing Lura’s influence."
+    },
+    {
+      q: "The author’s tone in the passage can best be described as ___ .",
+      choices: [
+        "critical and doubtful",
+        "humorous and lighthearted",
+        "admiring and hopeful",
+        "neutral and academic"
+      ],
+      answer: "admiring and hopeful",
+      explanation: "The author celebrates Taro’s creativity and shows optimism about the future."
+    }
+  ];
+
+  // ------------------------
+  // Config
+  const TOTAL = PASSAGE_QUESTIONS.length; // 10
+  const TIME_LIMIT = 20 * 60; // 20 minutes in seconds
+  const STORAGE_KEY = 'reading_quiz_attempts_v1';
+
+  // ------------------------
+  // State
+  let name = '';
+  let questions = []; // selected & randomized
+  let current = 0;
+  let selectedAnswers = []; // stores chosen indexes (or null)
+  let timeLeft = TIME_LIMIT;
+  let timerInterval = null;
+  let submitted = false;
+
+  // ------------------------
+  // DOM
+  const startScreen = document.getElementById('startScreen');
+  const quizScreen = document.getElementById('quizScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const startBtn = document.getElementById('startBtn');
+  const loadLastBtn = document.getElementById('loadLastBtn');
+  const nameInput = document.getElementById('nameInput');
+  const displayName = document.getElementById('displayName');
+  const timerEl = document.getElementById('timer');
+  const qIndexEl = document.getElementById('qIndex');
+  const qTotalEl = document.getElementById('qTotal');
+  const questionText = document.getElementById('questionText');
+  const optionsContainer = document.getElementById('optionsContainer');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const progressBar = document.getElementById('progressBar');
+  const answeredCountEl = document.getElementById('answeredCount');
+  const totalCountEl = document.getElementById('totalCount');
+  const scoreText = document.getElementById('scoreText');
+  const metaInfo = document.getElementById('metaInfo');
+  const reviewContainer = document.getElementById('reviewContainer');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  // ------------------------
+  // Utilities
+  function shuffle(arr){
+    for(let i = arr.length -1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function startQuiz(){
+    name = (nameInput.value || 'Anonymous').trim();
+    displayName.textContent = name;
+    // Randomize question order and options
+    questions = JSON.parse(JSON.stringify(PASSAGE_QUESTIONS)); // deep clone
+    shuffle(questions);
+    questions.forEach(q => shuffle(q.choices));
+    selectedAnswers = new Array(questions.length).fill(null);
+    current = 0;
+    timeLeft = TIME_LIMIT;
+    submitted = false;
+    // UI
+    startScreen.style.display = 'none';
+    resultScreen.style.display = 'none';
+    quizScreen.style.display = 'block';
+    qTotalEl.textContent = questions.length;
+    totalCountEl.textContent = questions.length;
+    updateQuestionUI();
+    startTimer();
+    // warn user if they try to leave mid-quiz
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+  }
+
+  function beforeUnloadHandler(e){
+    if(!submitted){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }
+
+  function startTimer(){
+    renderTimer();
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      renderTimer();
+      if(timeLeft <= 0){
+        clearInterval(timerInterval);
+        if(!submitted){
+          alert('Time is up! The quiz will be submitted automatically.');
+          submitQuiz();
+        }
+      }
+    }, 1000);
+  }
+
+  function renderTimer(){
+    const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+    const s = (timeLeft % 60).toString().padStart(2,'0');
+    timerEl.textContent = `${m}:${s}`;
+    // keep subtle progress bar: answered progress
+    const answered = selectedAnswers.filter(x => x !== null).length;
+    const pct = Math.round((answered / questions.length) * 100);
+    progressBar.style.width = pct + '%';
+    answeredCountEl.textContent = answered;
+  }
+
+  function updateQuestionUI(){
+    const q = questions[current];
+    qIndexEl.textContent = current + 1;
+    questionText.textContent = q.q;
+    optionsContainer.innerHTML = '';
+    q.choices.forEach((choice, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'text-left p-3 rounded-lg border w-full hover:bg-slate-50';
+      btn.innerHTML = `<div class="font-medium">${String.fromCharCode(65 + idx)}. ${escapeHtml(choice)}</div>`;
+      // mark selected
+      if(selectedAnswers[current] === idx){
+        btn.classList.add('option-selected');
+      }
+      btn.addEventListener('click', () => {
+        selectedAnswers[current] = idx;
+        // update selection UI (remove class from siblings)
+        Array.from(optionsContainer.children).forEach((c,ci)=> {
+          c.classList.toggle('option-selected', ci === idx);
+        });
+        renderTimer(); // updates answered count and progress
+      });
+      optionsContainer.appendChild(btn);
+    });
+    // prev/next button state
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === questions.length - 1;
+    // update answered display
+    renderTimer();
+  }
+
+  // ------------------------
+  // Navigation
+  prevBtn.addEventListener('click', () => {
+    if(current > 0) {
+      current--;
+      updateQuestionUI();
+    }
+  });
+  nextBtn.addEventListener('click', () => {
+    if(current < questions.length - 1) {
+      current++;
+      updateQuestionUI();
+    }
+  });
+
+  // ------------------------
+  // Submit and scoring
+  submitBtn.addEventListener('click', () => {
+    if(confirm('Submit quiz now? You will not be able to change answers after submitting.')) {
+      submitQuiz();
+    }
+  });
+
+  function submitQuiz(){
+    if(submitted) return;
+    submitted = true;
+    clearInterval(timerInterval);
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    // compute score & build review
+    let correctCount = 0;
+    const review = [];
+    for(let i=0;i<questions.length;i++){
+      const q = questions[i];
+      const selIdx = selectedAnswers[i];
+      const selText = selIdx === null ? null : q.choices[selIdx];
+      const isCorrect = selText !== null && selText.toString().trim().toLowerCase() === q.answer.toString().trim().toLowerCase();
+      if(isCorrect) correctCount++;
+      review.push({
+        q: q.q,
+        choices: q.choices.slice(),
+        selected: selText,
+        correct: q.answer,
+        explanation: q.explanation,
+        isCorrect
+      });
+    }
+
+    // save attempt
+    const attempts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const now = new Date();
+    const attempt = {
+      name,
+      date: now.toLocaleString(),
+      score: correctCount,
+      total: questions.length,
+      review
+    };
+    attempts.push(attempt);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
+
+    // show result screen
+    quizScreen.style.display = 'none';
+    resultScreen.style.display = 'block';
+    scoreText.textContent = `You scored ${correctCount} / ${questions.length}`;
+    metaInfo.textContent = `${name} · ${attempt.date}`;
+    renderReview(review);
+  }
+
+  function renderReview(review){
+    reviewContainer.innerHTML = '';
+    review.forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'p-4 border rounded-lg';
+      const header = document.createElement('div');
+      header.className = 'flex items-start justify-between gap-4';
+      header.innerHTML = `<div><div class="font-semibold">${i+1}. ${escapeHtml(r.q)}</div></div>
+                          <div class="text-right"><div class="${r.isCorrect ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${r.isCorrect ? 'Correct' : 'Wrong'}</div></div>`;
+      const body = document.createElement('div');
+      body.className = 'mt-3 text-sm text-slate-700 space-y-1';
+      const sel = r.selected ? escapeHtml(r.selected) : '<em class="text-slate-500">No answer</em>';
+      body.innerHTML = `<div><strong>Your answer:</strong> ${sel}</div>
+                        <div><strong>Correct answer:</strong> ${escapeHtml(r.correct)}</div>
+                        <div class="text-slate-500"><strong>Explanation:</strong> ${escapeHtml(r.explanation)}</div>`;
+      card.appendChild(header);
+      card.appendChild(body);
+      reviewContainer.appendChild(card);
+    });
+  }
+
+  // ------------------------
+  // Retake / Download / Clear
+  retakeBtn.addEventListener('click', () => {
+    // bring back start screen with name prefilled
+    nameInput.value = name;
+    startScreen.style.display = 'block';
+    quizScreen.style.display = 'none';
+    resultScreen.style.display = 'none';
+    // clear state (timer already cleared)
+    selectedAnswers = [];
+    questions = [];
+    current = 0;
+    submitted = false;
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const attempts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if(attempts.length === 0){
+      alert('No saved attempts to download.');
+      return;
+    }
+    const last = attempts[attempts.length - 1];
+    const blob = new Blob([JSON.stringify(last, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reading_quiz_${last.name.replace(/\s+/g,'_')}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if(confirm('Clear all saved attempts from localStorage?')){
+      localStorage.removeItem(STORAGE_KEY);
+      alert('Saved attempts cleared.');
+    }
+  });
+
+  // Load last attempt preview
+  loadLastBtn.addEventListener('click', () => {
+    const attempts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if(attempts.length === 0){
+      alert('No saved attempts found.');
+      return;
+    }
+    const last = attempts[attempts.length - 1];
+    alert(`Last attempt:\nName: ${last.name}\nScore: ${last.score}/${last.total}\nDate: ${last.date}`);
+  });
+
+  // Start button
+  startBtn.addEventListener('click', startQuiz);
+
+  // Keyboard: allow Enter to select first option or navigate (small UX)
+  document.addEventListener('keydown', (e) => {
+    if(quizScreen.style.display === 'block'){
+      if(e.key === 'ArrowRight') nextBtn.click();
+      if(e.key === 'ArrowLeft') prevBtn.click();
+    }
+  });
+
+  // Escape HTML
+  function escapeHtml(s){
+    if(s === null || s === undefined) return '';
+    return s.toString()
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+</script>
+</body>
+</html>

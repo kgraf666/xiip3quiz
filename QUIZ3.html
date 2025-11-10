@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Quiz – The Light in the Desert</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 flex items-center justify-center min-h-screen">
+
+<div id="app" class="w-full max-w-3xl p-6"></div>
+
+<script>
+const passage = `
+<h2 class="text-2xl font-bold mb-4 text-center">Reading Passage: The Light in the Desert</h2>
+<p class="mb-2">When the small desert town of Nara lost its electricity for months due to a damaged power station, many believed life would come to a halt. Shops closed early, students studied under candlelight, and farmers struggled to keep their water pumps running. Among them was Amina, a 19-year-old student who refused to give up.</p>
+<p class="mb-2">Amina had once read about solar microgrids—small networks that could power homes using sunlight. With the help of her science teacher and a few friends, she began collecting broken solar panels from nearby cities. They repaired them, reused old batteries, and connected the panels to power a few lights and pumps.</p>
+<p class="mb-2">At first, people laughed at her “toy project.” But when her system managed to power a local well for an entire week, the laughter turned into curiosity. Soon, the townspeople joined her, donating materials and helping expand the microgrid. Within two months, almost every house in Nara had power again—this time from the sun.</p>
+<p class="mb-2">Amina later presented her work at a regional science fair. Her idea inspired several neighboring villages to adopt similar systems. “Technology,” she said, “is not about machines—it’s about giving people hope.”</p>
+<p class="mb-2">Today, Nara’s solar network continues to grow, symbolizing how innovation, when fueled by courage and community, can bring light even to the darkest places.</p>
+`;
+
+const questions = [
+  {
+    q: "What is the main idea of the passage?",
+    options: [
+      "How one student used renewable energy to restore hope to her town",
+      "How desert towns survive without electricity",
+      "The problems caused by broken power stations",
+      "Why solar energy is too costly for small villages"
+    ],
+    answer: 0,
+    explanation: "The passage focuses on Amina’s efforts to bring solar power and hope to her community."
+  },
+  {
+    q: "The word “halt” in line 2 is closest in meaning to",
+    options: ["progress", "stop", "growth", "silence"],
+    answer: 1,
+    explanation: "“Halt” means a complete stop or pause."
+  },
+  {
+    q: "According to the passage, how did Amina get the solar panels?",
+    options: [
+      "She built them from scratch",
+      "She bought them with government funding",
+      "She collected and repaired old ones",
+      "She borrowed them from her school"
+    ],
+    answer: 2,
+    explanation: "Amina collected broken panels from nearby cities and repaired them."
+  },
+  {
+    q: "What was the community’s first reaction to Amina’s project?",
+    options: [
+      "They ignored it completely",
+      "They criticized her for wasting time",
+      "They laughed at it",
+      "They supported her immediately"
+    ],
+    answer: 2,
+    explanation: "At first, people laughed at her project before seeing its success."
+  },
+  {
+    q: "It is implied in the passage that Amina’s project succeeded mainly because she",
+    options: [
+      "received help from wealthy donors",
+      "had strong leadership and persistence",
+      "studied renewable energy at university",
+      "followed government instructions"
+    ],
+    answer: 1,
+    explanation: "Her persistence and leadership inspired others to join her efforts."
+  },
+  {
+    q: "The word “microgrid” in line 6 most likely refers to",
+    options: [
+      "a large national power network",
+      "a small, localized energy system",
+      "a backup generator",
+      "a computer program for solar power"
+    ],
+    answer: 1,
+    explanation: "A microgrid is a small energy network serving a limited area."
+  },
+  {
+    q: "Which of the following is NOT mentioned as an effect of Amina’s project?",
+    options: [
+      "Houses regained power",
+      "Other villages copied the idea",
+      "The national government rebuilt the main power station",
+      "Amina presented her project at a science fair"
+    ],
+    answer: 2,
+    explanation: "The government’s rebuilding of the main power station is not mentioned."
+  },
+  {
+    q: "The phrase “fueled by courage and community” in the last paragraph suggests that",
+    options: [
+      "the project depended on teamwork and bravery",
+      "energy was literally produced by the townspeople",
+      "courage replaced the need for technology",
+      "the system was unstable and risky"
+    ],
+    answer: 0,
+    explanation: "It symbolizes how cooperation and bravery powered the project’s success."
+  },
+  {
+    q: "The author’s purpose in writing this passage is to",
+    options: [
+      "explain how solar panels function technically",
+      "argue against the use of traditional energy",
+      "inspire readers through a story of innovation",
+      "describe climate change in desert regions"
+    ],
+    answer: 2,
+    explanation: "The passage aims to inspire readers through Amina’s innovation."
+  },
+  {
+    q: "The tone of the passage can best be described as",
+    options: [
+      "hopeful and inspiring",
+      "formal and distant",
+      "doubtful and critical",
+      "humorous and casual"
+    ],
+    answer: 0,
+    explanation: "The story is written in an uplifting and motivational tone."
+  }
+];
+
+let shuffledQuestions = [];
+let current = 0;
+let score = 0;
+let name = "";
+let timer;
+let timeLeft = 20 * 60; // 20 minutes
+
+function shuffleArray(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function startQuiz(user) {
+  name = user;
+  shuffledQuestions = shuffleArray([...questions]);
+  shuffledQuestions.forEach(q => q.options = shuffleArray(q.options));
+  current = 0;
+  score = 0;
+  document.getElementById('app').innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+      <div class="flex justify-between mb-2 text-sm text-gray-500">
+        <div>Name: <span class="font-semibold">${name}</span></div>
+        <div>Time left: <span id="timer">20:00</span></div>
+      </div>
+      <div id="passage" class="prose max-w-none mb-4">${passage}</div>
+      <div id="quiz"></div>
+    </div>`;
+  startTimer();
+  showQuestion();
+}
+
+function startTimer() {
+  const t = document.getElementById('timer');
+  timer = setInterval(() => {
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    t.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      finishQuiz();
+    }
+  }, 1000);
+}
+
+function showQuestion() {
+  const q = shuffledQuestions[current];
+  let optionsHTML = "";
+  q.options.forEach((opt, i) => {
+    optionsHTML += `
+      <label class="block border rounded-xl px-3 py-2 hover:bg-gray-100 cursor-pointer">
+        <input type="radio" name="option" value="${i}" class="mr-2"> ${opt}
+      </label>`;
+  });
+  document.getElementById('quiz').innerHTML = `
+    <h3 class="text-lg font-semibold mb-3">Question ${current + 1} of ${shuffledQuestions.length}</h3>
+    <p class="mb-3">${q.q}</p>
+    <div class="space-y-2 mb-4">${optionsHTML}</div>
+    <button onclick="nextQuestion()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Next</button>`;
+}
+
+function nextQuestion() {
+  const selected = document.querySelector('input[name="option"]:checked');
+  if (!selected) {
+    alert("Please select an answer before continuing.");
+    return;
+  }
+  const answerIndex = parseInt(selected.value);
+  const q = shuffledQuestions[current];
+  if (q.options[answerIndex] === q.options[q.answer]) score++;
+  q.userAnswer = q.options[answerIndex];
+  current++;
+  if (current < shuffledQuestions.length) {
+    showQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz() {
+  clearInterval(timer);
+  const resultHTML = shuffledQuestions.map((q, i) => {
+    const correct = q.userAnswer === q.options[q.answer];
+    return `
+      <div class="border-b py-3">
+        <p class="font-semibold">Q${i + 1}. ${q.q}</p>
+        <p>Your answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">${q.userAnswer || 'No answer'}</span></p>
+        <p>Correct answer: <span class="text-green-600">${q.options[q.answer]}</span></p>
+        <p class="text-gray-600 text-sm italic">${q.explanation}</p>
+      </div>`;
+  }).join("");
+  const scorePercent = Math.round((score / shuffledQuestions.length) * 100);
+  localStorage.setItem("lightDesertReadingQuiz", JSON.stringify({ name, score, date: new Date().toLocaleString() }));
+  document.getElementById('app').innerHTML = `
+    <div class="bg-white p-6 rounded-2xl shadow-lg overflow-y-auto max-h-screen">
+      <h2 class="text-2xl font-bold mb-4 text-center">Result for ${name}</h2>
+      <p class="text-center mb-4 text-lg">Score: <span class="font-semibold">${score}/${shuffledQuestions.length}</span> (${scorePercent}%)</p>
+      <div>${resultHTML}</div>
+      <div class="text-center mt-6">
+        <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Retake Quiz</button>
+      </div>
+    </div>`;
+}
+
+document.getElementById('app').innerHTML = `
+  <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+    <h1 class="text-2xl font-bold mb-2">Reading Quiz: The Light in the Desert</h1>
+    <p class="mb-4 text-gray-600">Enter your name to begin the 20-minute reading test.</p>
+    <input id="username" type="text" placeholder="Your name" class="border rounded-lg px-3 py-2 w-full mb-4">
+    <button onclick="const name=document.getElementById('username').value.trim(); if(name) startQuiz(name); else alert('Please enter your name.')"
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 w-full">Start Test</button>
+  </div>`;
+</script>
+
+</body>
+</html>
