@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abstract Noun Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 to-purple-800 min-h-screen flex items-center justify-center text-white p-4">
+
+  <div id="startScreen" class="text-center max-w-lg">
+    <h1 class="text-3xl font-bold mb-4">🧠 Abstract Noun Quiz</h1>
+    <p class="text-gray-300 mb-4">Enter your name to begin the test. You’ll have <b>20 minutes</b> to answer 30 random questions.</p>
+    <input id="username" type="text" placeholder="Your name" class="w-full p-2 rounded text-black mb-4">
+    <button onclick="startQuiz()" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-semibold">Start Quiz</button>
+  </div>
+
+  <div id="quizScreen" class="hidden w-full max-w-2xl">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-bold text-lg" id="userDisplay"></h2>
+      <div class="text-yellow-300 font-bold">⏰ Time Left: <span id="timer">20:00</span></div>
+    </div>
+    <div id="questionContainer" class="bg-white/10 p-6 rounded-lg shadow-lg">
+      <p id="questionText" class="text-lg mb-4"></p>
+      <div id="optionsContainer" class="space-y-3"></div>
+    </div>
+    <button id="nextBtn" onclick="nextQuestion()" class="mt-6 bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold hidden">Next</button>
+  </div>
+
+  <div id="resultScreen" class="hidden text-center max-w-2xl">
+    <h2 class="text-3xl font-bold mb-4">🎉 Quiz Completed!</h2>
+    <p id="finalScore" class="text-lg mb-6"></p>
+    <div id="answersReview" class="bg-white/10 p-4 rounded-lg text-left max-h-[60vh] overflow-y-auto"></div>
+    <button onclick="location.reload()" class="mt-6 bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-semibold">Restart</button>
+  </div>
+
+  <script>
+    const questionBank = [
+      {q:"The company’s success depends on the __________ of its workers.",options:["creative","creativity","create","creation"],a:"creativity"},
+      {q:"Education is the key to social __________.",options:["improve","improved","improvement","improving"],a:"improvement"},
+      {q:"Her __________ to finish the project impressed everyone.",options:["determine","determined","determination","determines"],a:"determination"},
+      {q:"The scientist’s discovery brought great __________ to the medical field.",options:["advance","advanced","advancement","advancing"],a:"advancement"},
+      {q:"We all need to show more __________ toward the environment.",options:["responsible","responsibility","respond","response"],a:"responsibility"},
+      {q:"The students showed great __________ during the final exam.",options:["concentrate","concentration","concentrating","concentrated"],a:"concentration"},
+      {q:"The government is working to reduce air __________.",options:["pollute","pollution","polluted","polluting"],a:"pollution"},
+      {q:"Honesty is one of the most important forms of personal __________.",options:["integrity","intelligent","integrity’s","integrate"],a:"integrity"},
+      {q:"The teacher praised her students for their __________ in solving problems.",options:["patience","patient","patiently","patients"],a:"patience"},
+      {q:"The success of the plan depends on public __________.",options:["cooperate","cooperation","cooperative","cooperated"],a:"cooperation"},
+      {q:"He has a strong __________ that hard work always brings success.",options:["believe","belief","believing","believable"],a:"belief"},
+      {q:"Their friendship is based on mutual __________.",options:["respect","respects","respecting","respectable"],a:"respect"},
+      {q:"The child’s __________ for learning languages was remarkable.",options:["able","ability","enable","ability’s"],a:"ability"},
+      {q:"Without enough sleep, our level of __________ decreases.",options:["productive","production","productivity","produce"],a:"productivity"},
+      {q:"The leader inspired the team with his sense of __________.",options:["confident","confidence","confide","confidential"],a:"confidence"},
+      {q:"The company must take __________ for its actions.",options:["respond","responsibility","responsible","responsive"],a:"responsibility"},
+      {q:"We all admired her __________ to help the poor.",options:["generous","generosity","generate","generator"],a:"generosity"},
+      {q:"The film explores the theme of human __________.",options:["free","freely","freedom","freeing"],a:"freedom"},
+      {q:"His speech gave me great __________ to study harder.",options:["inspire","inspiration","inspiring","inspired"],a:"inspiration"},
+      {q:"The students showed remarkable __________ during the presentation.",options:["nervous","nervousness","nerve","nervously"],a:"nervousness"},
+      {q:"The city has made a lot of __________ in public transportation.",options:["progress","process","procedure","progressing"],a:"progress"},
+      {q:"The teacher noticed a big __________ in her writing skills.",options:["improve","improvement","improving","improved"],a:"improvement"},
+      {q:"__________ is the foundation of every relationship.",options:["Trust","Trusting","Trusted","Trustful"],a:"Trust"},
+      {q:"Their __________ led to a successful partnership.",options:["cooperate","cooperation","cooperative","cooperated"],a:"cooperation"},
+      {q:"The doctor showed great __________ for her patients.",options:["compassionate","compassion","compasses","compatible"],a:"compassion"},
+      {q:"She has a natural __________ for solving problems.",options:["talent","talented","tally","talents"],a:"talent"},
+      {q:"The students’ __________ was tested during the difficult exam.",options:["patient","patience","patience’s","patiently"],a:"patience"},
+      {q:"The conference was focused on global economic __________.",options:["stable","stability","stabilize","stabilizing"],a:"stability"},
+      {q:"The community appreciated his __________ to helping others.",options:["devote","devotion","devoted","devoting"],a:"devotion"},
+      {q:"__________ is essential for achieving success in business.",options:["Persistent","Persist","Persistence","Persistently"],a:"Persistence"},
+      {q:"The new policy aims to promote gender __________.",options:["equal","equally","equality","equalize"],a:"equality"},
+      {q:"The manager valued her team’s __________ in meeting deadlines.",options:["reliable","reliability","rely","reliance"],a:"reliability"},
+      {q:"His sense of __________ helped him overcome challenges.",options:["determine","determination","determined","determinate"],a:"determination"},
+      {q:"The judge admired the lawyer’s __________.",options:["honest","honesty","honor","honorable"],a:"honesty"},
+      {q:"Their friendship is built on mutual __________ and trust.",options:["respect","respected","respecting","respectable"],a:"respect"},
+      {q:"The patient showed great __________ during the long recovery.",options:["endure","endurance","enduring","endurable"],a:"endurance"},
+      {q:"The teacher emphasized the __________ of reading daily.",options:["important","importance","importantly","import"],a:"importance"},
+      {q:"He gained a lot of __________ after solving the crisis.",options:["proud","pride","proudness","priding"],a:"pride"},
+      {q:"The manager appreciated her employee’s __________ in completing the task.",options:["efficient","efficiently","efficiency","efficiency’s"],a:"efficiency"},
+      {q:"The artist’s work showed great __________ of color and emotion.",options:["combine","combination","combined","combining"],a:"combination"},
+      {q:"The committee admired his __________ to make fair decisions.",options:["just","justice","justification","justify"],a:"justice"},
+      {q:"Their __________ to the team’s goal made them successful.",options:["commitment","commit","committing","committal"],a:"commitment"},
+      {q:"We were deeply moved by her __________.",options:["kindness","kind","kindly","kinds"],a:"kindness"},
+      {q:"The project requires complete __________ from everyone involved.",options:["dedicate","dedication","dedicated","dedicating"],a:"dedication"},
+      {q:"Their __________ helped them survive difficult times.",options:["friendship","friendly","friend","friendliness"],a:"friendship"},
+      {q:"The new law protects the basic __________ of every citizen.",options:["right","rights","rightful","rightly"],a:"rights"},
+      {q:"The professor admired her student’s __________ in research.",options:["curiosity","curious","curiously","curing"],a:"curiosity"},
+      {q:"Teamwork increases the overall __________ of the company.",options:["productive","production","productivity","produced"],a:"productivity"},
+      {q:"His strong sense of __________ made him a good leader.",options:["responsible","responsibility","responsive","respond"],a:"responsibility"},
+      {q:"The speech inspired a feeling of national __________ among the citizens.",options:["unity","unite","united","uniting"],a:"unity"}
+    ];
+
+    let questions = [], current = 0, score = 0, selected = {}, timer;
+
+    function startQuiz(){
+      const name = document.getElementById("username").value.trim();
+      if(!name){alert("Please enter your name!");return;}
+      document.getElementById("startScreen").classList.add("hidden");
+      document.getElementById("quizScreen").classList.remove("hidden");
+      document.getElementById("userDisplay").textContent = "👋 " + name;
+      startTimer(20*60);
+      questions = shuffle(questionBank).slice(0,30);
+      loadQuestion();
+    }
+
+    function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+    function loadQuestion(){
+      const q = questions[current];
+      document.getElementById("questionText").textContent = `${current+1}. ${q.q}`;
+      const container = document.getElementById("optionsContainer");
+      container.innerHTML="";
+      const shuffledOptions = shuffle([...q.options]);
+      shuffledOptions.forEach(opt=>{
+        const btn=document.createElement("button");
+        btn.textContent=opt;
+        btn.className="block w-full text-left bg-white/20 hover:bg-white/30 p-2 rounded";
+        btn.onclick=()=>selectOption(opt);
+        container.appendChild(btn);
+      });
+      document.getElementById("nextBtn").classList.add("hidden");
+    }
+
+    function selectOption(choice){
+      const q=questions[current];
+      selected[current]={chosen:choice,correct:q.a};
+      if(choice===q.a)score++;
+      [...document.getElementById("optionsContainer").children].forEach(b=>{
+        b.disabled=true;
+        if(b.textContent===q.a)b.classList.add("bg-green-600");
+        else if(b.textContent===choice)b.classList.add("bg-red-600");
+      });
+      document.getElementById("nextBtn").classList.remove("hidden");
+    }
+
+    function nextQuestion(){
+      current++;
+      if(current<questions.length)loadQuestion();
+      else showResult();
+    }
+
+    function startTimer(sec){
+      const timerDisplay=document.getElementById("timer");
+      timer=setInterval(()=>{
+        const m=Math.floor(sec/60),s=sec%60;
+        timerDisplay.textContent=`${m}:${s<10?"0"+s:s}`;
+        sec--;
+        if(sec<0){clearInterval(timer);showResult();}
+      },1000);
+    }
+
+    function showResult(){
+      clearInterval(timer);
+      document.getElementById("quizScreen").classList.add("hidden");
+      document.getElementById("resultScreen").classList.remove("hidden");
+      document.getElementById("finalScore").textContent=`Your score: ${score}/${questions.length}`;
+      const review=document.getElementById("answersReview");
+      review.innerHTML="";
+      questions.forEach((q,i)=>{
+        const userAns=selected[i]?.chosen||"No answer";
+        const div=document.createElement("div");
+        div.innerHTML=`<p class='mb-1'><b>${i+1}. ${q.q}</b></p>
+        <p>Your answer: <span class='${userAns===q.a?"text-green-400":"text-red-400"}'>${userAns}</span></p>
+        <p>Correct answer: <b class='text-green-300'>${q.a}</b></p><hr class='my-2 border-gray-600'>`;
+        review.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
