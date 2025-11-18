@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TOEFL Modal Auxiliaries — 30 MCQ Quiz</title>
+  <style>
+    :root{--bg:#f7fafc;--card:#fff;--accent:#1565d8;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:#111;margin:0;padding:20px;display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .wrap{width:100%;max-width:980px}
+    .card{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 16px;color:var(--muted)}
+    .start-area{display:grid;gap:12px}
+    input[type="text"]{padding:10px;border:1px solid #e6e9ee;border-radius:10px;font-size:16px;width:100%}
+    button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:10px;font-weight:600;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .quiz-area{margin-top:18px}
+    .progress{height:10px;background:#e6eefb;border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#60a5fa);width:0}
+    .qcard{padding:16px;border-radius:10px;border:1px solid #eef2ff;margin-top:12px}
+    .question{font-weight:700;margin-bottom:10px}
+    .options{display:grid;gap:10px}
+    .option{display:flex;align-items:center;padding:10px;border-radius:8px;border:1px solid #eef2ff;cursor:pointer;user-select:none}
+    .option input{margin-right:12px}
+    .footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
+    .muted{color:var(--muted)}
+    .results{padding:14px;border-radius:10px;border:1px dashed #dbeafe;margin-top:12px;background:#fcfeff}
+    .answers{margin-top:12px}
+    .answer-item{padding:8px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px}
+    .small{font-size:13px;color:var(--muted)}
+    @media (max-width:640px){body{padding:12px}.card{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <h1>TOEFL — Modal Auxiliaries Quiz (30 MCQs)</h1>
+      <p class="lead">Enter your name and press Start. Questions and options are shuffled. You won't see correct answers until the end. Results will be submitted automatically.</p>
+
+      <div id="start" class="start-area">
+        <label for="name">Your name</label>
+        <input id="name" type="text" placeholder="Type your name..." autocomplete="name" />
+        <div style="display:flex;gap:8px">
+          <button id="startBtn">Start Quiz</button>
+          <button id="restartBtn" style="display:none;background:#6b7280">Reset</button>
+        </div>
+      </div>
+
+      <div id="quiz" class="quiz-area" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="muted" id="player">Player: —</div>
+          <div style="flex:1;min-width:180px;margin:0 12px">
+            <div class="progress" aria-hidden><i id="prog"></i></div>
+          </div>
+          <div class="muted" id="qcount">Question <span id="qn">0</span>/30</div>
+        </div>
+
+        <div class="qcard" id="qcard"></div>
+
+        <div class="footer">
+          <button id="prevBtn">Previous</button>
+          <div style="flex:1"></div>
+          <button id="nextBtn">Next</button>
+        </div>
+      </div>
+
+      <div id="resultArea" style="display:none"></div>
+    </div>
+  </div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzJcgHXDUjJlUztFQMGY5WFB_R3tiEj9eEel0SVapqPWS8DXM_IqL2CpaovxwhKDjRe/exec';
+const TOTAL_QUESTIONS = 30;
+
+/* ---------------- QUESTIONS (30 TOEFL-style modal auxiliary items) ----------------
+   Each item: { q: "text", options: [5 options], answer: index-of-correct-in-original-array }
+*/
+const QUESTIONS_MASTER = [
+  {q: "She _____ arrive by 9 — she's very punctual.", options: ["may","must","might","would","should"], answer: 1},
+  {q: "If I were you, I _____ consult a lawyer before signing.", options: ["could","should","might","would","must"], answer: 1},
+  {q: "You _____ smoke in here — it's against the rules.", options: ["might not","should not","must not","could not","would not"], answer: 2},
+  {q: "They _____ have left already; I saw their car in the driveway a minute ago.", options: ["must","may","will","should","could"], answer: 0},
+  {q: "_____ I open the window? It's very warm in here.", options: ["Can","Should","May","Must","Would"], answer: 2},
+  {q: "He _____ play the piano when he was five (ability in the past).", options: ["might","could","should","must","will"], answer: 1},
+  {q: "You _____ to submit the form by Friday or you'll miss the deadline.", options: ["have","need","ought","should","must"], answer: 4},
+  {q: "She said she _____ finish the project if she had more time. (past conditional)", options: ["will","would","must","shall","may"], answer: 1},
+  {q: "Guests _____ wear masks at the event last year; it was recommended but optional.", options: ["had to","could","might","should","must"], answer: 1},
+  {q: "It's getting late — we _____ go home now.", options: ["may","must","might","should","could"], answer: 1},
+  {q: "He _____ be the manager because he has worked here for 20 years. (deduction)", options: ["must","may","can","should","might"], answer: 0},
+  {q: "You _____ not park here; the sign says 'No Parking.'", options: ["must","should","could","may","must not"], answer: 4},
+  {q: "I _____ have called you earlier, but my phone died. (regret about the past)", options: ["should","could","might","must","would"], answer: 0},
+  {q: "By next year she _____ have completed her degree (future perfect probability).", options: ["must","will","may","should","might"], answer: 2},
+  {q: "'You _____ tell him the truth.' — Which modal expresses obligation strongest?", options: ["may","should","must","could","might"], answer: 2},
+  {q: "They _____ go to the museum tomorrow; the weather will be nice. (planned possibility)", options: ["must","might","should","will","could"], answer: 1},
+  {q: "_____ I ask you a personal question? (polite request)", options: ["Can","May","Must","Will","Should"], answer: 1},
+  {q: "You _____ have left the window open — that's why it rained in the house. (logical speculation)", options: ["must","could","should","may","would"], answer: 1},
+  {q: "Students _____ not use calculators on this exam. (prohibition)", options: ["should","must","may","could","might"], answer: 1},
+  {q: "When she was a child she _____ speak three languages fluently. (ability)", options: ["might","could","would","must","should"], answer: 1},
+  {q: "If you hurry, you _____ catch the bus. (possibility)", options: ["must","should","could","would","shall"], answer: 2},
+  {q: "I _____ finish that report tonight — no excuses. (firm intention)", options: ["should","must","may","might","could"], answer: 1},
+  {q: "He _____ not remember her name; it was many years ago. (possibility)", options: ["might","must","will","should","could"], answer: 0},
+  {q: "You _____ to tell anyone about this — it's confidential. (advice/obligation: 'ought to')", options: ["ought","must","should","could","would"], answer: 0},
+  {q: "She _____ have been sleeping; the house is quiet and dark. (speculation about the past)", options: ["must","might","should","could","would"], answer: 1},
+  {q: "_____ we wait here until he returns? (suggestion)", options: ["Will","Shall","May","Must","Could"], answer: 1},
+  {q: "You _____ have told me earlier — I could have helped. (criticizing past action)", options: ["must","should","would","could","might"], answer: 1},
+  {q: "They said the project _____ be completed by June, but the date wasn't certain. (reported future possibility)", options: ["might","must","will","could","should"], answer: 0},
+  {q: "I _____ not go to the party if I were you — it's a risky crowd. (advice)", options: ["would","should","could","must","might"], answer: 0},
+  {q: "You _____ to check the oil in your car regularly to avoid engine trouble. (strong advice)", options: ["must","should","may","could","would"], answer: 1}
+];
+
+/* ---------------- UTILS ---------------- */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" })[c]||c); }
+
+/* ---------------- RUNTIME ---------------- */
+let questions = [];
+let current = 0;
+const total = TOTAL_QUESTIONS;
+
+const nameInput = document.getElementById('name');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const startArea = document.getElementById('start');
+const quizArea = document.getElementById('quiz');
+const qcard = document.getElementById('qcard');
+const player = document.getElementById('player');
+const qn = document.getElementById('qn');
+const prog = document.getElementById('prog');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const resultArea = document.getElementById('resultArea');
+
+function init(){
+  // copy master and pick first N (TOTAL_QUESTIONS)
+  let pool = deepClone(QUESTIONS_MASTER);
+  if(pool.length < total){
+    console.warn('QUESTION POOL < TOTAL_QUESTIONS; repeating items to reach 30');
+    while(pool.length < total) pool = pool.concat(deepClone(QUESTIONS_MASTER));
+  }
+  pool = shuffle(pool).slice(0, total);
+
+  // for each question, shuffle options and compute new answer index
+  questions = pool.map(q=>{
+    const opts = q.options.map((t,i)=>({t,orig:i}));
+    shuffle(opts);
+    const newIndex = opts.findIndex(o=>o.orig === q.answer);
+    return { q: q.q, options: opts.map(o=>o.t), answer: newIndex, choice: null };
+  });
+
+  current = 0;
+  renderQuestion();
+  updateProgress();
+}
+
+function renderQuestion(){
+  const it = questions[current];
+  qcard.innerHTML = '';
+  const qEl = document.createElement('div');
+  qEl.className = 'question';
+  qEl.innerHTML = `<span>${current+1}. </span>${escapeHtml(it.q)}`;
+  qcard.appendChild(qEl);
+
+  const optsWrap = document.createElement('div');
+  optsWrap.className = 'options';
+  it.options.forEach((opt, idx)=>{
+    const label = document.createElement('label');
+    label.className = 'option';
+    label.setAttribute('data-idx', idx);
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'opt';
+    radio.value = idx;
+    radio.id = 'q'+current+'o'+idx;
+    radio.checked = (it.choice === idx);
+    radio.addEventListener('change', ()=> { it.choice = idx; });
+
+    const span = document.createElement('span');
+    span.innerHTML = escapeHtml(opt);
+
+    label.appendChild(radio);
+    label.appendChild(span);
+    label.addEventListener('click', ()=>{ radio.checked = true; it.choice = idx; });
+
+    optsWrap.appendChild(label);
+  });
+
+  qcard.appendChild(optsWrap);
+}
+
+function updateProgress(){
+  qn.textContent = current+1;
+  const percent = Math.round(((current) / total) * 100);
+  prog.style.width = percent + '%';
+  player.textContent = 'Player: ' + (nameInput.value.trim() || '—');
+  prevBtn.disabled = (current === 0);
+  nextBtn.textContent = (current === total-1) ? 'Submit' : 'Next';
+}
+
+/* Navigation */
+prevBtn.addEventListener('click', ()=> {
+  if(current > 0){ current--; renderQuestion(); updateProgress(); }
+});
+nextBtn.addEventListener('click', ()=> {
+  if(current === total-1){
+    // Submit
+    showResults();
+    return;
+  }
+  current++;
+  renderQuestion();
+  updateProgress();
+});
+
+/* Start / Reset handlers */
+startBtn.addEventListener('click', ()=> {
+  init();
+  startArea.style.display = 'none';
+  quizArea.style.display = 'block';
+  resultArea.style.display = 'none';
+  player.textContent = 'Player: ' + (nameInput.value.trim() || '—');
+  nameInput.setAttribute('disabled','disabled');
+  startBtn.disabled = true;
+  restartBtn.style.display = 'inline-block';
+});
+restartBtn.addEventListener('click', ()=> {
+  // show start area
+  startArea.style.display = 'grid';
+  quizArea.style.display = 'none';
+  resultArea.style.display = 'none';
+  startBtn.disabled = false;
+  nameInput.removeAttribute('disabled');
+  restartBtn.style.display = 'none';
+});
+
+/* Show results locally, then submit to GAS */
+function showResults(){
+  // compute score
+  let correct = 0;
+  const details = questions.map((it, idx)=>{
+    const chosenText = (it.choice == null) ? null : it.options[it.choice];
+    const correctText = it.options[it.answer];
+    const isCorrect = (it.choice === it.answer);
+    if(isCorrect) correct++;
+    return { qNo: idx+1, question: it.q, chosen: chosenText, correct: correctText, isCorrect };
+  });
+
+  const percent = Math.round((correct / total) * 100);
+
+  quizArea.style.display = 'none';
+  resultArea.style.display = 'block';
+  resultArea.innerHTML = `
+    <div class="results">
+      <h2>Results for <em>${escapeHtml(nameInput.value.trim() || 'Anonymous')}</em></h2>
+      <p class="small">Score: <strong>${correct}</strong> / ${total} (${percent}%)</p>
+      <p class="small">Your answers and the correct answers are shown below. Your result will also be submitted.</p>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="downloadBtn">Download CSV</button>
+        <button id="retakeBtn" style="background:#6b7280">Retake</button>
+      </div>
+    </div>
+    <div id="answersList" class="answers"></div>
+  `;
+
+  // render answers list (show both student's choice and correct)
+  const list = document.getElementById('answersList');
+  list.innerHTML = details.map(d=>{
+    return `<div class="answer-item"><strong>Q${d.qNo}.</strong> ${escapeHtml(d.question)}<br>
+      <small class="small">Your answer: ${d.chosen ? escapeHtml(d.chosen) : '<em>Not answered</em>'} — Correct: ${escapeHtml(d.correct)} ${d.isCorrect ? '✅' : '❌'}</small></div>`;
+  }).join('');
+
+  // download CSV
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    const rows = [["No","Question","Your answer","Correct answer","Correct?"]];
+    details.forEach(d => rows.push([d.qNo, d.question, d.chosen || '', d.correct, d.isCorrect ? 'Yes' : 'No']));
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = (nameInput.value.trim() || 'quiz') + '_results.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('retakeBtn').addEventListener('click', ()=> {
+    resultArea.style.display = 'none';
+    startArea.style.display = 'grid';
+    quizArea.style.display = 'none';
+    startBtn.disabled = false;
+    nameInput.removeAttribute('disabled');
+    restartBtn.style.display = 'none';
+  });
+
+  // now submit to Google Apps Script (server)
+  submitToSheet({
+    name: nameInput.value.trim() || 'Anonymous',
+    score: correct,
+    percent,
+    answers: questions.map(q => q.choice == null ? null : q.options[q.choice]),
+    details: {
+      perQuestion: details,
+      submittedAt: new Date().toISOString()
+    }
+  });
+}
+
+/* Submit using text/plain to reduce CORS preflight problems */
+function submitToSheet(payload){
+  try {
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      redirect: 'follow',
+      body: JSON.stringify(payload)
+    })
+    .then(r => {
+      // attempt to parse JSON even if content-type isn't perfect
+      return r.text().then(t => {
+        try { return JSON.parse(t); } catch(e){ return { status: 'ok', raw: t }; }
+      });
+    })
+    .then(res => {
+      if(res && res.status && res.status === 'success'){
+        console.log('Saved to sheet');
+        // show subtle confirmation
+        const el = document.createElement('div');
+        el.className = 'small';
+        el.style.marginTop = '8px';
+        el.textContent = 'Results submitted successfully.';
+        resultArea.querySelector('.results').appendChild(el);
+      } else {
+        console.warn('Submission response:', res);
+        const el = document.createElement('div');
+        el.className = 'small';
+        el.style.marginTop = '8px';
+        el.textContent = 'Submission attempted — server returned an unexpected response.';
+        resultArea.querySelector('.results').appendChild(el);
+      }
+    })
+    .catch(err => {
+      console.error('Submission failed:', err);
+      const el = document.createElement('div');
+      el.className = 'small';
+      el.style.marginTop = '8px';
+      el.textContent = 'Failed to submit results (network/CORS).';
+      resultArea.querySelector('.results').appendChild(el);
+    });
+  } catch(err){
+    console.error('submitToSheet error', err);
+  }
+}
+
+/* start on Enter in name field */
+nameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') startBtn.click(); });
+
+// ensure progress bar starts at zero
+prog.style.width = '0%';
+</script>
+</body>
+</html>
