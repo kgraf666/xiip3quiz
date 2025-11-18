@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modal Auxiliaries — Advanced Quiz (30 MCQs)</title>
+  <style>
+    :root{--bg:#f3f6fb;--card:#fff;--accent:#0b63d6;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:#111;margin:0;padding:18px;display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .wrap{width:100%;max-width:980px}
+    .card{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 16px;color:var(--muted)}
+    .start-area{display:grid;gap:12px}
+    input[type="text"]{padding:10px;border:1px solid #e6e9ee;border-radius:10px;font-size:16px;width:100%}
+    button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:10px;font-weight:600;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .quiz-area{margin-top:18px}
+    .progress{height:10px;background:#e6eefb;border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#60a5fa);width:0}
+    .qcard{padding:16px;border-radius:10px;border:1px solid #eef2ff;margin-top:12px}
+    .question{font-weight:700;margin-bottom:10px}
+    .options{display:grid;gap:10px}
+    .option{display:flex;align-items:center;padding:10px;border-radius:8px;border:1px solid #eef2ff;cursor:pointer;user-select:none}
+    .option input{margin-right:12px}
+    .footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
+    .muted{color:var(--muted)}
+    .results{padding:14px;border-radius:10px;border:1px dashed #dbeafe;margin-top:12px;background:#fcfeff}
+    .answers{margin-top:12px}
+    .answer-item{padding:8px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px}
+    .small{font-size:13px;color:var(--muted)}
+    @media (max-width:640px){body{padding:12px}.card{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <h1>Modal Auxiliaries — Medium/Hard Quiz (30 MCQs)</h1>
+      <p class="lead">Advanced practice on modal auxiliaries. Enter name, Start, answer. Questions & options shuffle. Answers hidden until finish. Results will be submitted automatically (change `WEB_APP_URL` in script if needed).</p>
+
+      <div id="start" class="start-area">
+        <label for="name">Your name</label>
+        <input id="name" type="text" placeholder="Type your name..." autocomplete="name" />
+        <div style="display:flex;gap:8px">
+          <button id="startBtn">Start Quiz</button>
+          <button id="restartBtn" style="display:none;background:#6b7280">Reset</button>
+        </div>
+      </div>
+
+      <div id="quiz" class="quiz-area" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="muted" id="player">Player: —</div>
+          <div style="flex:1;min-width:180px;margin:0 12px">
+            <div class="progress" aria-hidden><i id="prog"></i></div>
+          </div>
+          <div class="muted" id="qcount">Question <span id="qn">0</span>/30</div>
+        </div>
+
+        <div class="qcard" id="qcard"></div>
+
+        <div class="footer">
+          <button id="prevBtn">Previous</button>
+          <div style="flex:1"></div>
+          <button id="nextBtn">Next</button>
+        </div>
+      </div>
+
+      <div id="resultArea" style="display:none"></div>
+    </div>
+  </div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzJcgHXDUjJlUztFQMGY5WFB_R3tiEj9eEel0SVapqPWS8DXM_IqL2CpaovxwhKDjRe/exec';
+const TOTAL_QUESTIONS = 30;
+
+/* ---------------- QUESTION POOL (30 medium-hard) ----------------
+ Each item: { q: "text", options: [5], answer: index-of-correct-in-original-array }
+ Be careful: answer indexes refer to the option array here BEFORE options are shuffled.
+*/
+const QUESTIONS_MASTER = [
+  {q: "She said he _____ have taken the train because his car was here. (logical deduction about a past action)", options: ["must","might","should","could","would"], answer: 1},
+  {q: "Had I known, I _____ have advised you differently. (past counterfactual modal)", options: ["must","could","would","should","might"], answer: 2},
+  {q: "You _____ have been listening — I explained this twice. (criticizing past action)", options: ["could","might","should","must","would"], answer: 2},
+  {q: "By now he _____ have finished the manuscript — he started two months ago. (probable completion)", options: ["may","could","must","should","might"], answer: 2},
+  {q: "During the trial, witnesses _____ be cross-examined under the court's rules. (possibility/permission in official context)", options: ["must","may","can","should","might"], answer: 1},
+  {q: "She looks pale; she _____ be feeling well. (polite/weak deduction)", options: ["must","might","should","could","would"], answer: 1},
+  {q: "If you take that road you'll _____ save time but risk traffic. (possibility with consequence)", options: ["could","must","should","might","would"], answer: 0},
+  {q: "You _____ not drive until the fog clears — it's dangerous. (strong prohibition recommendation)", options: ["should","must","may","could","would"], answer: 1},
+  {q: "He _____ have been told about the meeting — otherwise he wouldn't be absent. (logical conclusion about past)", options: ["might","must","should","could","may"], answer: 1},
+  {q: "I _____ have helped you yesterday if you'd asked — I was free. (past ability/willingness conditional)", options: ["could","should","would","must","might"], answer: 2},
+  {q: "They _____ be allowed to enter the premises without authorization. (polite/legal permission negative)", options: ["may not","cannot","should not","must not","might not"], answer: 1},
+  {q: "You _____ to finish the assignment tonight; the instructor insisted. (strong obligation phrasing)", options: ["have","must","need","ought","should"], answer: 0},
+  {q: "In many universities students _____ pay tuition in advance. (typical requirement)", options: ["must","can","should","may","might"], answer: 0},
+  {q: "He said he _____ see me if I came to the office. (polite conditional request/offer)", options: ["would","could","should","might","must"], answer: 0},
+  {q: "They _____ have left earlier — the lights in the house went out hours ago. (inference about when they left)", options: ["must","may","could","might","should"], answer: 0},
+  {q: "You _____ have told me about the changes; I would've adapted. (criticizing hypothetical past)", options: ["should","could","must","might","would"], answer: 0},
+  {q: "She _____ be in her office now; check the schedule first. (less certain deduction)", options: ["might","must","should","could","would"], answer: 0},
+  {q: "When the alarm sounded, everyone _____ evacuate immediately. (formal instruction)", options: ["should","must","may","could","might"], answer: 1},
+  {q: "He _____ have been working all night; that's why he looks tired. (possible cause—speculation)", options: ["must","may","might","should","could"], answer: 2},
+  {q: "Despite the forecast, we _____ still encounter showers this evening. (possibility despite expectations)", options: ["may","must","should","would","could"], answer: 0},
+  {q: "If you heat water to 100°C it _____ boil. (scientific certainty/general truth)", options: ["will","would","must","may","should"], answer: 0},
+  {q: "You _____ have your passport when entering the country; it's compulsory. (requirement)", options: ["must","could","may","should","would"], answer: 0},
+  {q: "He _____ be telling the truth; his story has changed several times. (doubt/weak deduction)", options: ["might not","may not","must not","should not","could not"], answer: 1},
+  {q: "Under the contract, the tenant _____ notify the landlord 30 days before moving out. (obligation in official language)", options: ["must","should","may","could","would"], answer: 0},
+  {q: "She speaks as if she _____ known him for years. (counterfactual suggestion about present)", options: ["has","had","would","must","might"], answer: 1},
+  {q: "If you _____ to be on time, leave earlier than usual. (advice using modal)", options: ["wish","want","hope","intend","wish to"], answer: 1},
+  {q: "At that time he _____ have been living abroad; evidence shows his passport stamps. (inference about past residence)", options: ["must","may","might","should","could"], answer: 0},
+  {q: "You _____ have finished the form correctly — please check again. (expectation/advice)", options: ["ought to","must","should","could","may"], answer: 2},
+  {q: "They told us we _____ turn off all devices during the flight. (instruction commonly used on planes)", options: ["must","may","should","could","would"], answer: 2}
+];
+
+/* ---------------- UTILS ---------------- */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" })[c]||c); }
+
+/* ---------------- RUNTIME ---------------- */
+let questions = [];
+let current = 0;
+const total = TOTAL_QUESTIONS;
+
+const nameInput = document.getElementById('name');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const startArea = document.getElementById('start');
+const quizArea = document.getElementById('quiz');
+const qcard = document.getElementById('qcard');
+const player = document.getElementById('player');
+const qn = document.getElementById('qn');
+const prog = document.getElementById('prog');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const resultArea = document.getElementById('resultArea');
+
+function init(){
+  // deep copy and ensure pool >= total
+  let pool = deepClone(QUESTIONS_MASTER);
+  if(pool.length < total){
+    while(pool.length < total) pool = pool.concat(deepClone(QUESTIONS_MASTER));
+  }
+  pool = shuffle(pool).slice(0, total);
+
+  // shuffle options for each question and compute new answer index
+  questions = pool.map(q=>{
+    const opts = q.options.map((t,i)=>({t,orig:i}));
+    shuffle(opts);
+    const newIndex = opts.findIndex(o=>o.orig === q.answer);
+    return { q: q.q, options: opts.map(o=>o.t), answer: newIndex, choice: null };
+  });
+
+  current = 0;
+  renderQuestion();
+  updateProgress();
+}
+
+function renderQuestion(){
+  const it = questions[current];
+  qcard.innerHTML = '';
+  const qEl = document.createElement('div');
+  qEl.className = 'question';
+  qEl.innerHTML = `<span>${current+1}. </span>${escapeHtml(it.q)}`;
+  qcard.appendChild(qEl);
+
+  const optsWrap = document.createElement('div');
+  optsWrap.className = 'options';
+  it.options.forEach((opt, idx)=>{
+    const label = document.createElement('label');
+    label.className = 'option';
+    label.setAttribute('data-idx', idx);
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'opt';
+    radio.value = idx;
+    radio.id = 'q'+current+'o'+idx;
+    radio.checked = (it.choice === idx);
+    radio.addEventListener('change', ()=> { it.choice = idx; });
+
+    const span = document.createElement('span');
+    span.innerHTML = escapeHtml(opt);
+
+    label.appendChild(radio);
+    label.appendChild(span);
+    label.addEventListener('click', ()=>{ radio.checked = true; it.choice = idx; });
+
+    optsWrap.appendChild(label);
+  });
+
+  qcard.appendChild(optsWrap);
+}
+
+function updateProgress(){
+  qn.textContent = current+1;
+  const percent = Math.round(((current) / total) * 100);
+  prog.style.width = percent + '%';
+  player.textContent = 'Player: ' + (nameInput.value.trim() || '—');
+  prevBtn.disabled = (current === 0);
+  nextBtn.textContent = (current === total-1) ? 'Submit' : 'Next';
+}
+
+/* Navigation */
+prevBtn.addEventListener('click', ()=> {
+  if(current > 0){ current--; renderQuestion(); updateProgress(); }
+});
+nextBtn.addEventListener('click', ()=> {
+  if(current === total-1){
+    showResults();
+    return;
+  }
+  current++;
+  renderQuestion();
+  updateProgress();
+});
+
+/* Start / Reset handlers */
+startBtn.addEventListener('click', ()=> {
+  init();
+  startArea.style.display = 'none';
+  quizArea.style.display = 'block';
+  resultArea.style.display = 'none';
+  player.textContent = 'Player: ' + (nameInput.value.trim() || '—');
+  nameInput.setAttribute('disabled','disabled');
+  startBtn.disabled = true;
+  restartBtn.style.display = 'inline-block';
+});
+restartBtn.addEventListener('click', ()=> {
+  startArea.style.display = 'grid';
+  quizArea.style.display = 'none';
+  resultArea.style.display = 'none';
+  startBtn.disabled = false;
+  nameInput.removeAttribute('disabled');
+  restartBtn.style.display = 'none';
+});
+
+/* Show results locally, then submit to GAS */
+function showResults(){
+  // compute score
+  let correct = 0;
+  const details = questions.map((it, idx)=>{
+    const chosenText = (it.choice == null) ? null : it.options[it.choice];
+    const correctText = it.options[it.answer];
+    const isCorrect = (it.choice === it.answer);
+    if(isCorrect) correct++;
+    return { qNo: idx+1, question: it.q, chosen: chosenText, correct: correctText, isCorrect };
+  });
+
+  const percent = Math.round((correct / total) * 100);
+
+  quizArea.style.display = 'none';
+  resultArea.style.display = 'block';
+  resultArea.innerHTML = `
+    <div class="results">
+      <h2>Results for <em>${escapeHtml(nameInput.value.trim() || 'Anonymous')}</em></h2>
+      <p class="small">Score: <strong>${correct}</strong> / ${total} (${percent}%)</p>
+      <p class="small">Your answers and the correct answers are shown below. Your result will also be submitted.</p>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="downloadBtn">Download CSV</button>
+        <button id="retakeBtn" style="background:#6b7280">Retake</button>
+      </div>
+    </div>
+    <div id="answersList" class="answers"></div>
+  `;
+
+  const list = document.getElementById('answersList');
+  list.innerHTML = details.map(d=>{
+    return `<div class="answer-item"><strong>Q${d.qNo}.</strong> ${escapeHtml(d.question)}<br>
+      <small class="small">Your answer: ${d.chosen ? escapeHtml(d.chosen) : '<em>Not answered</em>'} — Correct: ${escapeHtml(d.correct)} ${d.isCorrect ? '✅' : '❌'}</small></div>`;
+  }).join('');
+
+  // download CSV
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    const rows = [["No","Question","Your answer","Correct answer","Correct?"]];
+    details.forEach(d => rows.push([d.qNo, d.question, d.chosen || '', d.correct, d.isCorrect ? 'Yes' : 'No']));
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = (nameInput.value.trim() || 'quiz') + '_results.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('retakeBtn').addEventListener('click', ()=> {
+    resultArea.style.display = 'none';
+    startArea.style.display = 'grid';
+    quizArea.style.display = 'none';
+    startBtn.disabled = false;
+    nameInput.removeAttribute('disabled');
+    restartBtn.style.display = 'none';
+  });
+
+  // submit results
+  submitToSheet({
+    name: nameInput.value.trim() || 'Anonymous',
+    score: correct,
+    percent,
+    answers: questions.map(q => q.choice == null ? null : q.options[q.choice]),
+    details: {
+      perQuestion: details,
+      submittedAt: new Date().toISOString()
+    }
+  });
+}
+
+/* Submit using text/plain to reduce CORS preflight problems */
+function submitToSheet(payload){
+  try {
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      redirect: 'follow',
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.text().then(t => { try { return JSON.parse(t); } catch(e) { return { status:'ok', raw:t }; } }))
+    .then(res => {
+      if(res && res.status && res.status === 'success'){
+        const el = document.createElement('div');
+        el.className = 'small';
+        el.style.marginTop = '8px';
+        el.textContent = 'Results submitted successfully.';
+        resultArea.querySelector('.results').appendChild(el);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'small';
+        el.style.marginTop = '8px';
+        el.textContent = 'Submission attempted — server returned an unexpected response.';
+        resultArea.querySelector('.results').appendChild(el);
+        console.warn('Submission response:', res);
+      }
+    })
+    .catch(err => {
+      console.error('Submission failed:', err);
+      const el = document.createElement('div');
+      el.className = 'small';
+      el.style.marginTop = '8px';
+      el.textContent = 'Failed to submit results (network/CORS).';
+      resultArea.querySelector('.results').appendChild(el);
+    });
+  } catch(err){
+    console.error('submitToSheet error', err);
+  }
+}
+
+/* start on Enter in name input */
+nameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') startBtn.click(); });
+prog.style.width = '0%';
+</script>
+</body>
+</html>
